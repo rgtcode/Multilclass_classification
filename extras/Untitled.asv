@@ -1,0 +1,120 @@
+%%%.......I-vector extraction........%%%
+% m=GMM supervector of the Universal background model
+% m_s=UBM supervector for the channel and speaker independent
+% T=total variability matrix & w= I vector
+% m=m_s+Tw
+
+
+%%
+%making the frames from each class and from each data stack together
+clear all;
+clc;
+close all;
+
+%extracting train and dev image_data
+data_path = 'data\SPEECH DATA'; 
+sp_train=cell(1,5);
+sp_develop=cell(1,5);
+ctra=zeros(1,5);
+ctst=zeros(1,5);
+
+
+%finding the directory of the given datasets
+%1=coast,%2=highway,%3=insidecity,%4=opencountry,%5=tallbuilding
+count=1;
+count_train=zeros(1,5);
+count_develop=zeros(1,5);
+for i=3:7
+    dlist=dir('data\SPEECH DATA');
+    c=dlist(i).name;
+    
+    t_file=fullfile(data_path,c,'train');
+    d_file=fullfile(data_path,c,'dev');
+    
+    tdata_list= dir(fullfile(t_file, '*.mfcc'));
+    ddata_list=dir(fullfile(d_file, '*.mfcc'));
+   
+    tdata=cell(1,length(tdata_list));
+    ddata=cell(1,length(ddata_list));
+     
+    im_train{count}=tdata;
+    im_develop{count}=ddata;
+    
+    for j=1:length(tdata_list)
+        tmfc=fullfile(t_file,tdata_list(j).name);
+        format long g
+        im_train{count}{j} =dlmread(tmfc);
+        count_train(1,i-2)=count_train(1,i-2)+1;
+    end
+    
+    for j=1:length(ddata_list)
+        tmfc=fullfile(d_file,ddata_list(j).name);
+        format long g
+        im_develop{count}{j} =dlmread(tmfc);
+        count_develop(1,i-2)=count_develop(1,i-2)+1;
+    end  
+count=count+1;
+
+end
+%%
+%reshaping of the data for the masking of the UBM GMM model
+A=im_train{1}{1}(2:end,:);
+for i=1:5
+    for j=1:length(im_train{i})
+        a=im_train{i}{j}(2:end,:);
+        A=[A;a];
+    end
+end
+[v u]=size(im_train{1}{1}(2:end,:));
+B=A(v+1:end,:);
+[~,dim]=size(B);
+
+%%
+%making of the GMM supervector by clustering all the frames
+epsilon=0.001;
+[weights,means,cov]=gmmest(B,500,25);
+
+
+
+%%
+%Intialisation of the Total  variability matrix
+rank=10;
+%t=total variability matrix
+k=40;
+D=38;
+t = zeros(k*D,rank);
+for i=1:k*D
+    for j=1:rank
+        t(i,j)= normrnd(0,1);
+    end
+end
+%%
+%calculation of the baum welch statistics for the I-vector
+F_s=zeros(sum(count_train),k,dim);
+N_s=zeros(sum(count_train),k);
+co=1;
+ for i=1:5
+     for j=1:count_train(1,i)
+         [q w e]=B_ws(im_train{i}{j},weights,means,covariances,k);
+         F_s(co,:,:)=w;
+         N_s(co,:)=q;
+         co=co+1;
+     end
+end
+
+%%
+%for the calculation of the I-vector
+I=zeros(5,39,10);
+for i=1:5
+     for j=1:count_train
+
+
+
+
+
+         
+    
+%     
+
+%%calculation of the cosine scoring 
+%%application of the FLDA for the pupose of the discrimination
